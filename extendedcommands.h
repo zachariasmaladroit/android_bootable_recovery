@@ -35,6 +35,12 @@ int
 __system(const char *command);
 
 void
+show_easy_install_menu();
+
+void
+show_easy_install_update_menu();
+
+void
 show_advanced_menu();
 
 int format_unknown_device(const char *device, const char* path, const char *fs_type);

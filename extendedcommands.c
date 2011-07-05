@@ -73,14 +73,14 @@ int install_zip(const char* packagefilepath)
         return 1;
     }
     ui_set_background(BACKGROUND_ICON_NONE);
-    ui_print("\nInstall from sdcard complete.\n");
+    ui_print("\nInstall from SDCard complete.\n");
     return 0;
 }
 
-char* INSTALL_MENU_ITEMS[] = {  "apply /sdcard/update.zip",
-                                "choose zip from sdcard",
-                                "toggle signature verification",
-                                "toggle script asserts",
+char* INSTALL_MENU_ITEMS[] = {  "Apply /sdcard/update.zip",
+                                "Choose zip from SDCard",
+                                "Toggle signature verification",
+                                "Toggle script asserts",
                                 NULL };
 #define ITEM_APPLY_SDCARD     0
 #define ITEM_CHOOSE_ZIP       1
@@ -89,7 +89,7 @@ char* INSTALL_MENU_ITEMS[] = {  "apply /sdcard/update.zip",
 
 void show_install_update_menu()
 {
-    static char* headers[] = {  "Apply update from .zip file on SD card",
+    static char* headers[] = {  "Apply update from .zip file on SDCard",
                                 "",
                                 NULL
     };
@@ -363,8 +363,8 @@ void show_mount_usb_storage_menu()
         return -1;
     }
     static char* headers[] = {  "USB Mass Storage device",
-                                "Leaving this menu unmount",
-                                "your SD card from your PC.",
+                                "Leaving this menu will unmount",
+                                "your SDCard from your PC.",
                                 "",
                                 NULL
     };
@@ -400,19 +400,13 @@ int confirm_selection(const char* title, const char* confirm)
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
     char* items[] = { "No",
                       "No",
-                      "No",
-                      "No",
-                      "No",
-                      "No",
-                      "No",
-                      confirm, //" Yes -- wipe partition",   // [7
-                      "No",
+                      confirm, //" Yes -- wipe partition",   // [2
                       "No",
                       "No",
                       NULL };
 
     int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
-    return chosen_item == 7;
+    return chosen_item == 2;
 }
 
 #define MKE2FS_BIN      "/sbin/mke2fs"
@@ -726,7 +720,7 @@ int run_and_remove_extendedcommand()
     remove(EXTENDEDCOMMAND_SCRIPT);
     int i = 0;
     for (i = 20; i > 0; i--) {
-        ui_print("Waiting for SD Card to mount (%ds)\n", i);
+        ui_print("Waiting for SDCard to mount (%ds)\n", i);
         if (ensure_path_mounted("/sdcard") == 0) {
             ui_print("SD Card mounted...\n");
             break;
@@ -735,7 +729,7 @@ int run_and_remove_extendedcommand()
     }
     remove("/sdcard/clockworkmod/.recoverycheckpoint");
     if (i == 0) {
-        ui_print("Timed out waiting for SD card... continuing anyways.");
+        ui_print("Timed out waiting for SDCard... continuing anyways.");
     }
 
     sprintf(tmp, "/tmp/%s", basename(EXTENDEDCOMMAND_SCRIPT));
@@ -753,7 +747,7 @@ void show_nandroid_advanced_restore_menu()
                                 "",
                                 "Choose an image to restore",
                                 "first. The next menu will",
-                                "you more options.",
+                                "show you more options.",
                                 "",
                                 NULL
     };
@@ -816,7 +810,7 @@ void show_nandroid_advanced_restore_menu()
 
 void show_nandroid_menu()
 {
-    static char* headers[] = {  "Nandroid",
+    static char* headers[] = {  "Backup and Restore Menu",
                                 "",
                                 NULL
     };
@@ -863,6 +857,115 @@ void wipe_battery_stats()
     remove("/data/system/batterystats.bin");
     ensure_path_unmounted("/data");
 }
+
+void show_easy_install_menu()
+{
+    static char* headers[] = {  "Easy Install Menu",
+                                "",
+                                "Performs required wipes",
+                                "before installing.",
+                                "",
+                                NULL
+    };
+
+    static char* list[] = { "Update/Install ROM from zip",
+                            "Wipe/Install ROM from zip",
+                            "Update/Install Kernel from zip",
+                            NULL
+    };
+
+    for (;;)
+    {
+        int chosen_item = get_menu_selection(headers, list, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+        switch (chosen_item)
+        {
+            case 0:
+                show_easy_install_update_menu(0);
+                break;
+            case 1:
+                show_easy_install_update_menu(1);
+                break;
+            case 2:
+                show_easy_install_update_menu(2);
+                break;
+        }
+    }
+}
+
+void show_easy_install_update_menu(int opts)
+{
+    if (ensure_path_mounted("/sdcard") != 0) {
+        LOGE ("Can't mount /sdcard\n");
+        return;
+    }
+
+    static char* headers[] = {  "Choose a zip to apply",
+                                "",
+                                NULL
+    };
+
+    char* file = choose_file_menu("/sdcard/", ".zip", headers);
+    if (file == NULL)
+        return;
+    static char* confirm_install  = "Confirm install?";
+    static char confirm[PATH_MAX];
+    
+    sprintf(confirm, "Yes - Install %s", basename(file));
+    if (confirm_selection(confirm_install, confirm)) {
+    
+        if (0 != ensure_path_mounted("/data"))
+            return;
+            
+        device_wipe_data();
+        ui_print("\n-- Wiping cache...\n");
+        format_volume("/cache");
+        ui_print("\n-- Wiping dalvik-cache...\n");
+        __system("rm -r /data/dalvik-cache");
+        if (0 == ensure_path_mounted("/sd-ext"))
+            __system("rm -r /sd-ext/dalvik-cache");
+            
+        switch(opts){
+            case 0:    
+                ui_print("\n-- Wiping system...\n");
+                format_volume("/system");
+                break;
+            case 1:
+                ui_print("\n-- Wiping system...\n");
+                format_volume("/system");
+                ui_print("\n-- Wiping data...\n");
+                format_volume("/data");
+                format_volume("/sd-ext");
+                __system("rm -r /sdcard/.android_secure");
+                if (has_datadata()) {
+                    ui_print("\n-- Wiping datadata...\n");
+                    format_volume("/datadata");
+                }
+                break;
+            case 2:
+                if (0 != ensure_path_mounted("/system"))
+                    return;
+                    
+                ui_print("\n-- Cleaning up init.d...\n");
+                __system("rm /system/etc/init.d/S_volt_scheduler");
+                __system("rm /system/etc/init.d/S70zipalign");
+                __system("rm /system/etc/init.d/S90scheduler");
+                __system("rm /system/etc/init.d/S99finish");
+                __system("rm /system/etc/init.d/89system_tweak");
+                __system("rm /system/etc/init.d/90screenstate_scaling");
+                break;
+        }
+        
+        ensure_path_unmounted("/data");
+        if (0 == ensure_path_mounted("/sd-ext"))
+            ensure_path_unmounted("/sd-ext");
+        
+        ui_print("\n-- Applying update...\n");
+        install_zip(file);
+    }
+}
+
 
 void show_advanced_menu()
 {

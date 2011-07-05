@@ -660,19 +660,13 @@ wipe_data(int confirm) {
 
         char* items[] = { " No",
                           " No",
-                          " No",
-                          " No",
-                          " No",
-                          " No",
-                          " No",
-                          " Yes -- delete all user data",   // [7]
-                          " No",
+                          " Yes -- delete all user data",   // [2]
                           " No",
                           " No",
                           NULL };
 
         int chosen_item = get_menu_selection(title_headers, items, 1, 0);
-        if (chosen_item != 7) {
+        if (chosen_item != 2) {
             return;
         }
     }
@@ -716,6 +710,14 @@ prompt_and_wait() {
                 if (!ui_text_visible()) return;
                 break;
 
+	        case ITEM_EASY_INSTALL:
+		        show_easy_install_menu();
+		        break;
+		        
+		    case ITEM_INSTALL_ZIP:
+                show_install_update_menu();
+                break;
+		        
             case ITEM_WIPE_CACHE:
                 if (confirm_selection("Confirm wipe?", "Yes - Wipe Cache"))
                 {
@@ -725,7 +727,7 @@ prompt_and_wait() {
                     if (!ui_text_visible()) return;
                 }
                 break;
-
+/*
             case ITEM_APPLY_SDCARD:
                 if (confirm_selection("Confirm install?", "Yes - Install /sdcard/update.zip"))
                 {
@@ -741,9 +743,7 @@ prompt_and_wait() {
                     }
                 }
                 break;
-            case ITEM_INSTALL_ZIP:
-                show_install_update_menu();
-                break;
+*/
             case ITEM_NANDROID:
                 show_nandroid_menu();
                 break;
